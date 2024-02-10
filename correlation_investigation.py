@@ -70,6 +70,9 @@ if __name__ == "__main__":
     # Linear correlation between two sets of numeric data.
     print(f"Pearson Correlation = {sci_stats.pearsonr(a, b)}, {sci_stats.pearsonr(b, a)}")
 
+    
+    # The P-value is the probability that you would have found the current result if the correlation coefficient were in fact zero (null hypothesis). If this probability is lower than the conventional 5% (P<0.05) the correlation coefficient is called statistically significant.
+
     # Linear correlation between the ranks of two sets of numeric data.
     print(
         f"Spearman Correlation = {sci_stats.spearmanr(a, b)}, {sci_stats.spearmanr(b, a)}"
