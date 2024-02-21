@@ -10,7 +10,6 @@ import numpy as np
 import re
 
 
-
 def load_data_from_csv(csv_name):
     df_data = pd.read_csv(csv_name, na_values=missing_values)
     print("{} Shape:", df_data.shape)
@@ -115,12 +114,18 @@ print("Movies_df Shape:", df_movie_titles.shape)
 print(df_movie_titles.head())
 # df_movie_titles.to_csv("movies.csv", index=None)
 
+# Display all columns
+pd.set_option("display.max_columns", None)
 
 print("Merged Movie data")
 # Merging all the datasets
 df = pd.merge(df_reviews, df_movie_titles, on="movieId")
 print(df.head(10))
 print(df.tail())
+
+
+# Find a summary of all the missing data in columns
+print(df.isnull().sum())
 
 # Total number of ratings for a movie
 print(df.groupby("title")["rating"].count().sort_values(ascending=False).head())
