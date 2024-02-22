@@ -37,6 +37,9 @@ class ColumnKey:
 
     def __getitem__(self, __key: Any) -> Any:
         return self._data[__key]
+    
+    def __contains__(self, __key: Any) -> bool:
+        return self._data.__contains__(__key)
 
     def __str__(self) -> str:
         return str(self._data)
