@@ -4,6 +4,7 @@ from typing import Any, Callable
 
 
 class Duration:
+    """Calculate the time interval for the retry interval"""
     @staticmethod
     def of_milliseconds(interval_time: int) -> float:
         """Specify the number of milliseci=onds in seconds"""
@@ -21,6 +22,8 @@ class Duration:
 
 
 class RetryPolicy:
+    """Policy that offers retry policies that will back off retrying
+    for a speified period though a context manager."""
     def __init__(self) -> None:
         self._initial_interval = 1
         self._backoff_rate = 2
@@ -28,6 +31,7 @@ class RetryPolicy:
         self._max_interval = 500
 
     def __enter__(self):
+        """Enter the ci=ontext manager"""
         self._current_wait = 0.0
         self._attempt = 0
         self._last_wait_time = 0.0
@@ -35,6 +39,7 @@ class RetryPolicy:
         return self
 
     def __exit__(self, type, value, traceback):
+        """Exit the context manager"""
         self._attempt = 0
         self._current_wait = 0.0
         self._last_wait_time = 0.0
@@ -140,20 +145,25 @@ class RetryPolicy:
 if __name__ == "__main__":
 
     def success(result: Any, retry_policy: RetryPolicy) -> bool:
+        """Passes application on chosen policy after 3 attempts (2 retries)"""
         if retry_policy.attempts == 3:
             return True
         return False
 
     def failure(result: Any, return_policy: RetryPolicy) -> bool:
+        """Fails application on every attempt"""
         return False
 
     def run_unbound_method(a):
+        """Stub Normal function (unbound method) to run"""
         print("run_unbound_method", a)
 
     class TestClass:
         def run_bound_method(self, a, b):
+            """Stub Class instance method to run"""
             print("run_bound_method", a, b)
 
+    # Text the durations calculated
     assert Duration.of_milliseconds(50) == 0.05
     assert Duration.of_minutes(50) == 50 * 60
 
