@@ -31,7 +31,7 @@ class RetryPolicy:
         self._max_interval = 500
 
     def __enter__(self):
-        """Enter the ci=ontext manager"""
+        """Enter the context manager"""
         self._current_wait = 0.0
         self._attempt = 0
         self._last_wait_time = 0.0
