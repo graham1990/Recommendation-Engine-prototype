@@ -59,18 +59,21 @@ if __name__ == "__main__":
     # Set seed
     np.random.seed(10)
 
-
     # Prepare data
     a = generate_random_numbers()
     b = add_random_offset_to_array(a)
 
+    # Create scatter plot
+    plt.figure(figsize=(8, 6), label="Spread of random data")
+    for i, val in enumerate(a):
+        plt.scatter(i, val)
+    plt.show()
 
     # Pearson correlation assesses linear relationships, while Spearman correlation evaluates monotonic relationships.
 
     # Linear correlation between two sets of numeric data.
     print(f"Pearson Correlation = {sci_stats.pearsonr(a, b)}, {sci_stats.pearsonr(b, a)}")
 
-    
     # The P-value is the probability that you would have found the current result if the correlation coefficient were in fact zero (null hypothesis). If this probability is lower than the conventional 5% (P<0.05) the correlation coefficient is called statistically significant.
 
     # Linear correlation between the ranks of two sets of numeric data.
@@ -80,7 +83,6 @@ if __name__ == "__main__":
 
     # Calculate correlations
     print(f"Correlation Ratio = {correlation_ratio(a, b)}, {correlation_ratio(b, a)}")
-
 
     # Calculate Cramer correlations
     print(f"Cramer's V Correlation = {cramerv(a, b)}, {cramerv(b, a)}")
@@ -124,6 +126,11 @@ if __name__ == "__main__":
     y.append(correlation_ratio(b, a))
     x.append("Cramer's V")
     y.append(cramerv(b, a))
+
+    plt.figure(figsize=(8, 6), label="Difference between data")
+    plt.plot(list(range(0, 1000)), a)
+    plt.plot(list(range(0, 1000)), b, '-.')
+    plt.show()
 
     # Create scatter plot
     plt.figure(figsize=(8, 6), label="Correlation between x and y arrays")

@@ -20,6 +20,83 @@ class Duration:
         """Specify number of minutes in seconds"""
         return interval_time * 60
 
+class SearchPolicies:    
+    @staticmethod
+    def on_value_type_and_value(target_type: type, op: Callable, target_val: Any):
+        """Search heterogeneous collections value attr for both type and value"""
+        return lambda key, val: isinstance(val, target_type) and op(val, target_val)
+
+class SearchableDict:
+    def __init__(self, initial: dict) -> None:
+        self._detail = initial if initial else {}
+
+    def extract(self, fn: Callable):
+        res = {
+                key: val for key, val in self._detail.items() if fn(key, val)}
+        return res
+
+    def __setitem__(self, __key: Any, __value: Any) -> None:
+        """Update a log item already in the logs"""
+        self._detail[__key] = __value
+
+    def __getitem__(self, __key: Any) -> Any:
+        """Get log item number __key"""
+        return self._detail[__key]
+
+    def __contains__(self, __key: Any) -> bool:
+        """Is log item present in log"""
+        return self._detail.__contains__(__key)
+
+    def __str__(self) -> str:
+        return str(self._detail)
+
+    def __repr__(self) -> str:
+        return repr(self._detail)
+
+
+class LogEntry(SearchableDict):
+    pass
+
+
+class RetryLogs:
+    def __init__(self) -> None:
+        self._detail = []
+
+    def append(self, item: dict[str, Any]) -> None:
+        """Append log item to end of the logs"""
+        self._detail.append(item)
+
+    def extract_entry(self, fn: Callable):
+        return [each for each in self._detail if each.extract(fn) != dict()]
+
+    def extract(self, fn: Callable):
+        res = []
+        for each in self._detail:
+            attrs = each.extract(fn)
+            if attrs != dict():
+                res.append(attrs)
+        return res
+
+    def __setitem__(self, __key: Any, __value: Any) -> None:
+        """Update a log item already in the logs"""
+        self._detail[__key] = __value
+
+    def __getitem__(self, __key: Any) -> Any:
+        """Get log item number __key"""
+        return self._detail[__key]
+
+    def __contains__(self, __key: Any) -> bool:
+        """Is log item present in log"""
+        return self._detail.__contains__(__key)
+
+    def __str__(self) -> str:
+        return str(self._detail)
+
+    def __repr__(self) -> str:
+        """pprint style formatting"""
+        from pprint import pformat
+        return pformat(self._detail, indent=4, width=1)
+
 
 class RetryPolicy:
     """Policy that offers retry policies that will back off retrying
@@ -115,9 +192,10 @@ class RetryPolicy:
         """Number of attemps made (including initial attempt)"""
         return self._attempt
 
-    def run_resource(self, fn: Callable, success_fn: Callable) -> Any:
+    def run_resource(self, fn: Callable, success_fn: Callable) -> RetryLogs:
         """Run a callable function, with the retry policy"""
         successful_operation = False
+        retry_log = RetryLogs()
         while (
             self._start_time + self._current_wait
             <= self._start_time + self._max_interval
@@ -126,11 +204,23 @@ class RetryPolicy:
             time.sleep(self._current_wait)
             result = fn()
             pass_run = success_fn(result, self)
+            retry_log.append(
+                LogEntry(
+                    {
+                        "attempt": self._attempt,
+                        "pass": pass_run,
+                        "total_retry_time": f"{self.run_time:.2f}",
+                    }
+                )
+            )
+            if result is not None:
+                retry_log[-1]["result"] = result
             if pass_run:
                 successful_operation = True
                 break
             self._last_wait_time = self._current_wait
             self._current_wait = self._calc_wait_interval()
+            retry_log[-1]['next_attempt_in'] = self._current_wait
         if successful_operation and self.attempts > 1:
             print(
                 f"Operation passed after {self.attempts} attempts lasting {self.run_time:.2f}"
@@ -139,10 +229,13 @@ class RetryPolicy:
             print(
                 f"Operation failed after {self.attempts} attempts lasting {self.run_time:.2f}"
             )
-        return result
+        return retry_log
 
 
 if __name__ == "__main__":
+    import operator as op
+    import pprint
+    import predictable_random as pr
 
     def success(result: Any, retry_policy: RetryPolicy) -> bool:
         """Passes application on chosen policy after 3 attempts (2 retries)"""
@@ -176,18 +269,33 @@ if __name__ == "__main__":
     )
 
     with retry_policy as retry:
-        retry.run_resource(lambda: run_unbound_method(16), failure)
+        log_inspect = retry.run_resource(lambda: run_unbound_method(16), failure)
         attempts = retry.attempts
         exec_time = retry.run_time
+    print(
+        "extract",
+        log_inspect[4].extract(SearchPolicies.on_value_type_and_value(int, op.ge, 2)),
+    )
+    print(
+        "extract all",
+        log_inspect.extract_entry(
+            SearchPolicies.on_value_type_and_value(int, op.ge, 2)
+        ),
+    )
+    print(
+        "extract attrs", log_inspect.extract(SearchPolicies.on_value_type_and_value(int, op.ge, 2))
+    )
+    pprint.pprint(log_inspect)
 
     # Check that all retrys failed
     assert attempts == 6
     assert exec_time > 29.4 and exec_time < 30.0
 
     with retry_policy as retry:
-        retry.run_resource(lambda: run_unbound_method(16), success)
+        log_inspect = retry.run_resource(lambda: run_unbound_method(16), success)
         attempts = retry.attempts
         exec_time = retry.run_time
+    pprint.pprint(log_inspect)
 
     # Check rerun recovers
     # and recovery took place on the 3rd atempt and that the time taken is as expected
@@ -197,9 +305,10 @@ if __name__ == "__main__":
     # Test instance method invocation
     tc = TestClass()
     with retry_policy as retry:
-        retry.run_resource(lambda: tc.run_bound_method(10, 20), success)
+        log_inspect = retry.run_resource(lambda: tc.run_bound_method(10, 20), success)
         attempts = retry.attempts
         exec_time = retry.run_time
+    pprint.pprint(log_inspect)
 
     # Test that recovery took place on the 3rd atempt and that the time taken is as expected
     assert attempts == 3
@@ -214,28 +323,27 @@ if __name__ == "__main__":
     )
 
     with exponential_retry_policy as retry:
-        retry.run_resource(lambda: run_unbound_method(16), success)
+        log_inspect = retry.run_resource(lambda: run_unbound_method(16), success)
         attempts = retry.attempts
         exec_time = retry.run_time
+    pprint.pprint(log_inspect)
 
     assert attempts == 3
     assert exec_time > 11.95 and exec_time < 12.5
 
     print("jitter retry policy")
-    def not_so_random(min: int, max: int) -> int:
-        return 3
-
     jitter_retry_policy = (
         RetryPolicy()
         .set_initial_interval(Duration.of_seconds(1))
-        .set_jitter_backoff(1.0, randon_fn=not_so_random)
+        .set_jitter_backoff(1.0, randon_fn=pr.not_so_random)
         .set_maximum_attempts(5)
     )
 
     with jitter_retry_policy as retry:
-        retry.run_resource(lambda: tc.run_bound_method(10, 20), failure)
+        log_inspect = retry.run_resource(lambda: tc.run_bound_method(10, 20), failure)
         attempts = retry.attempts
         exec_time = retry.run_time
+    pprint.pprint(log_inspect)
 
     assert attempts == 6
-    assert exec_time > 24.95 and exec_time < 25.5
+    assert exec_time > 27.0 and exec_time < 27.4

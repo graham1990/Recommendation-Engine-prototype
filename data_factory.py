@@ -48,7 +48,7 @@ class ColumnKey:
         return repr(self._data)
 
 
-class HndlrUtil:
+class StreamUtil:
     def to_column_key(self, remove_missing: bool = True) -> list[ColumnKey]:
         """Convert the loaded spreadsheet to dict where the column name is the key and the data is the value"""
         data = []
@@ -75,8 +75,9 @@ class HndlrUtil:
         return data
 
 
-class Local_Excel_Workbook_Hndlr(HndlrUtil):
-    """Handler for local loading and writing of Excel 2010 format files in byte form"""
+class Local_Excel_Workbook_Stream(StreamUtil):
+    """Local loading and writing of Excel 2010 format files Stream.
+    Data table is extracted from the default tab or the named tab"""
 
     def __init__(self):
         self._shape = {}
@@ -148,8 +149,8 @@ class Local_Excel_Workbook_Hndlr(HndlrUtil):
         return pd.DataFrame(data_rows, columns=column_names)
 
 
-class CSV_Raw_Hndlr(HndlrUtil):
-    """Handler for local loading and local writing of CSV files"""
+class CSV_Raw_Stream(StreamUtil):
+    """Local loading and local writing of Raw CSV files stream"""
 
     def load_data(self, csv_name: str, **options) -> list[str]:
         self._missing_values: list[str] = options.get("missing_values", [])
@@ -190,8 +191,9 @@ class CSV_Raw_Hndlr(HndlrUtil):
         return data
 
 
-class CSV_DataFrame_Hndlr(HndlrUtil):
-    """Handler for local or remote loading and local writing of CSV files"""
+class CSV_DataFrame_Stream(StreamUtil):
+    """Local or remote loading and local writing of CSV files stream
+    that uses Pandas to match the CSV data to use as a DataFrame"""
 
     def load_data(self, csv_name: str, **options) -> pd.DataFrame:
         self._missing_values: list[str] = options.get("missing_values", [])
@@ -246,30 +248,30 @@ class CSVFactory(DataDesc):
 
     def __init__(self, **meta) -> None:
         super().__init__(**meta)
-        self._hndlr = None
+        self._Stream = None
 
     def create_dataframe(self, csv_name: str, **options) -> pd.DataFrame:
         """Creates a memory based DataFrame data format (for use in Pandas) from the loaded csv file"""
-        self._hndlr = CSV_DataFrame_Hndlr()
-        self._data = self._hndlr.load_data(csv_name, **options)
+        self._Stream = CSV_DataFrame_Stream()
+        self._data = self._Stream.load_data(csv_name, **options)
         return self._data
 
     def create_column_key(self, csv_name: str, **options) -> list[ColumnKey]:
         """Creates a memory based list of Column data identified by Key data format from the loaded csv file"""
-        self._hndlr = CSV_Raw_Hndlr()
-        self._hndlr.load_data(csv_name, **options)
-        self._data = self._hndlr.to_column_key()
+        self._Stream = CSV_Raw_Stream()
+        self._Stream.load_data(csv_name, **options)
+        self._data = self._Stream.to_column_key()
         return self._data
 
     @property
     def row_count(self):
         """Number of rows the read table has"""
-        return self._hndlr.row_count
+        return self._Stream.row_count
 
     @property
     def column_count(self):
         """Number of columns the read table has"""
-        return self._hndlr.column_count
+        return self._Stream.column_count
 
 
 class ExcelFactory(DataDesc):
@@ -277,37 +279,37 @@ class ExcelFactory(DataDesc):
 
     def __init__(self, **meta) -> None:
         super().__init__(**meta)
-        self._hndlr = None
+        self._Stream = None
 
     def create_dataframe(
         self, excel_name: str, tab_name: str = None, **options
     ) -> pd.DataFrame:
         """Creates a memory based DataFrame data format (for use in Pandas) from the loaded xlsx file"""
-        self._hndlr = Local_Excel_Workbook_Hndlr()
-        self._hndlr.load_data(excel_name, **options)
-        self._hndlr.load_all_data_from_workbook(tab_name)
-        self._data = self._hndlr.to_data_frame()
+        self._Stream = Local_Excel_Workbook_Stream()
+        self._Stream.load_data(excel_name, **options)
+        self._Stream.load_all_data_from_workbook(tab_name)
+        self._data = self._Stream.to_data_frame()
         return self._data
 
     def create_column_key(
         self, excel_name: str, tab_name: str = None, **options
     ) -> list[ColumnKey]:
         """Creates a memory based list of Column data identified by Key data format from the loaded xlsx file"""
-        self._hndlr = Local_Excel_Workbook_Hndlr()
-        self._hndlr.load_data(excel_name, **options)
-        self._hndlr.load_all_data_from_workbook(tab_name)
-        self._data = self._hndlr.to_column_key()
+        self._Stream = Local_Excel_Workbook_Stream()
+        self._Stream.load_data(excel_name, **options)
+        self._Stream.load_all_data_from_workbook(tab_name)
+        self._data = self._Stream.to_column_key()
         return self._data
 
     @property
     def row_count(self):
         """Number of rows the read table has"""
-        return self._hndlr.row_count
+        return self._Stream.row_count
 
     @property
     def column_count(self):
         """Number of columns the read table has"""
-        return self._hndlr.column_count
+        return self._Stream.column_count
 
 
 if __name__ == "__main__":
