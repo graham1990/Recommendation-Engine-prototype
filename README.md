@@ -2,7 +2,7 @@
 
 ## Overview
 
-This project is a prototype for a recommedation engine that uses Panda queries display on aMatplotlib UI.
+This project is a prototype for a recommedation engine that uses Panda queries display on a Matplotlib UI.
 
 A recomendation may be either based on
   1. explicit feedback such as a star rating, thumb-up/thumb-down
@@ -88,7 +88,8 @@ The Collaborative Filtering data modeling has shown that data is key and to stat
 It was likely that tags identifying attributes in the movie would need to be much more comprehensive and interlinked to reflect say "comedy historical Korean drama". This will require an and function but also needs to give matches when not all tags have been found.
 
 ### Incremental prototype 2
-The abstract factory pattern was used as the basis of importing data to different data types. The template pattern was used to ensure that all table types were processed in a consistant manner with as much shared code as possible.
+The abstract factory pattern was used as the basis of importing data to different data types. The template pattern was used to ensure that all table types were processed in a consistant manner using shared code.
+A further enchancement is intended to handle CSV files using different codecs at a later stage, along with an ability to download straight to a NUMPY data stream to allow both developer friendly data analysis using Pandas and production ready solutions using numpy.
 
 ### Incremental prototype 3
 This is WIP, which is going to import primarly JSON data from a website where failure is likely. The incremental prototype starts with a retry function so that the function is truely reusable and  any data importes do not become unreliable. There are three models implemented; basic Coefficient Backoff, Exponential Backoff and jitter. The jitter function accepts the random integer function as an optional keyword argument allowing alternative random number generators to be used and to aid automating testing.
