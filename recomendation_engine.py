@@ -127,6 +127,28 @@ print(df.tail())
 # Find a summary of all the missing data in columns
 print(df.isnull().sum())
 
+# Find a summary of all the missing data in columns, as a percentage
+print((df.isnull().sum()/len(df))*100)
+
+# Filling device feature with defaukt data) - 0
+df.device = df.device.fillna(0)
+print(df.isnull().sum())
+
+# Because of the lack of data with device, remove that column from the data
+df.drop("device", inplace=True, axis=1)
+
+# Unique values in the ratings feature
+ratings_count = df["rating"].value_counts()
+print(ratings_count)
+print(ratings_count.index.tolist())
+print(ratings_count.values.tolist())
+
+plt.figure(figsize=(8, 6), label="No of Movie ratings")
+plt.ylabel("# of ratings")
+plt.xlabel("rating")
+plt.bar(ratings_count.index.tolist(), ratings_count.values.tolist())
+plt.show()
+
 # Total number of ratings for a movie
 print(df.groupby("title")["rating"].count().sort_values(ascending=False).head())
 
@@ -261,6 +283,8 @@ print(df1.corrwith(df2, method="pearson", numeric_only=True))
 print(df1.corrwith(df2, method="kendall", numeric_only=True))
 print(df1.corrwith(df2, method="spearman", numeric_only=True))
 
+plt.plot(chart_2["Height"], chart_2["Weight"])
+df2.plot()
 
 print("Movie reviews reloaded")
 df_reviews = pd.read_csv("reviews.csv", na_values=missing_values)
